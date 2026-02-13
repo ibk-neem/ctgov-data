@@ -35,6 +35,10 @@ CSV_COLUMNS = [
     "min_age",
     "max_age",
     "healthy_volunteers",
+    "countries",
+    "facilities",
+    "num_locations",
+    "has_us_site",
     "study_url",
 ]
 
@@ -59,6 +63,8 @@ def extract_row(study):
     arms = proto.get("armsInterventionsModule", {})
     outcomes = proto.get("outcomesModule", {})
 
+    contacts = proto.get("contactsLocationsModule", {})
+
     nct_id = ident.get("nctId", "")
     phases = design.get("phases", [])
     enrollment_info = design.get("enrollmentInfo", {})
@@ -67,6 +73,11 @@ def extract_row(study):
     interventions = arms.get("interventions", [])
     primary = outcomes.get("primaryOutcomes", [])
     secondary = outcomes.get("secondaryOutcomes", [])
+
+    locations = contacts.get("locations", [])
+    countries = sorted(set(loc.get("country", "") for loc in locations if loc.get("country")))
+    facilities = [loc.get("facility", "") for loc in locations if loc.get("facility")]
+    has_us = "United States" in countries
 
     return {
         "nct_id": nct_id,
@@ -94,6 +105,10 @@ def extract_row(study):
         "min_age": eligibility.get("minimumAge", ""),
         "max_age": eligibility.get("maximumAge", ""),
         "healthy_volunteers": eligibility.get("healthyVolunteers", ""),
+        "countries": "|".join(countries),
+        "facilities": "|".join(facilities),
+        "num_locations": len(locations),
+        "has_us_site": has_us,
         "study_url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else "",
     }
 
